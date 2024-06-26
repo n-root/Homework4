@@ -49,7 +49,7 @@ getRMSE <- function(response, prediction, ...) {
   sq_err <- (response - prediction)^2
   
   # Calculate the mean squared error
-  mean_sq_err <- mean(sq_err, na.rm = TRUE, ...)
+  mean_sq_err <- mean(sq_err, ...)
   
   # Calculate the root mean square error (RMSE)
   rmse <- sqrt(mean_sq_err)
@@ -80,7 +80,7 @@ with_na <- resp
 with_na[sample(1:n, 2)] <- NA_real_
 
 # RMSE WITH specifying how to deal with missing values
-established_behavior <- getRMSE(with_na, pred, na.rm = FALSE)
+established_behavior <- getRMSE(with_na, pred, na.rm = TRUE)
 established_behavior
 
 # RMSE WITHOUT specifying how to deal with missing values
