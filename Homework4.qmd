@@ -1,0 +1,316 @@
+---
+title: "Homework4"
+format: html
+editor: visual
+---
+
+# Homework Four
+
+## Libraries and More
+```{r}
+source("api_key.R")
+library(httr)
+library(dplyr)
+library(purrr)
+library(jsonlite)
+```
+
+## Task 1: Conceptual Questions
+
+#### 1. What is the purpose of the lapply() function? What is the equivalent purrr function?
+The purpose of the lapply() function is to apply a function to every element in a list and return a list of the results. The lapply() equivalent purrr function is the map() function.
+
+#### 2. Suppose we have a list called my_list. Each element of the list is a numeric data frame (all columns are numeric). We want to use lapply() to run the code cor(numeric_matrix, method = "kendall") on each element of the list. Write code to do this below!
+
+my_list_outcome <- lapply(my_list, function(numeric_matrix) {
+  cor(numeric_matrix, method = "kendall")
+})
+
+#### 3. What are two advantages of using purrr functions instead of the BaseR apply family?
+Purrr functions are generally 1. more consistent and 2. its helper functions stand out in comparison to the BaseR apply family.
+
+#### 4. What is a side-effect function?
+A side-effect function is a function that do not naturally return the modified argument.
+
+#### 5. Why can you name a variable 'sd' in a function and not cause any issues with the sd() function?
+This is because 'sd' is a variable and R has separate namespaces for functions and variables. Therefore, R searches for these names in their respective namespaces based on context clues.
+
+## Task 2: Writing R Functions
+
+#### 1. Write a basic function that takes in two vectors and outputs the RMSE
+```{r}
+getRMSE <- function(response, prediction, ...) {
+  
+  if (length(response) != length(prediction)) {
+    stop("Length of response and prediction vectors must be the same.")
+  }
+  
+  # Calculate the squared error values
+  sq_err <- (response - prediction)^2
+  
+  # Calculate the mean squared error
+  mean_sq_err <- mean(sq_err, na.rm = TRUE, ...)
+  
+  # Calculate the root mean square error (RMSE)
+  rmse <- sqrt(mean_sq_err)
+  
+  return(rmse)
+}
+```
+
+#### 2. Test the RMSE function
+```{r}
+# Run the following code to create some response values and predictions
+set.seed(10)
+n <- 100
+x <- runif(n)
+resp <- 3 + 10*x + rnorm(n)
+pred <- predict(lm(resp ~ x), data.frame(x))
+```
+
+```{r}
+# Test the RMSE function (without missing values)
+rmse_val <- getRMSE(resp, pred)
+rmse_val
+```
+
+```{r}
+# Repeat after replacing two of the response values with missing values (NA_real_)
+with_na <- resp
+with_na[sample(1:n, 2)] <- NA_real_
+
+# RMSE WITH specifying how to deal with missing values
+established_behavior <- getRMSE(with_na, pred, na.rm = FALSE)
+established_behavior
+
+# RMSE WITHOUT specifying how to deal with missing values
+default_behavior <- getRMSE(with_na, pred)
+default_behavior
+```
+
+#### 3. Write a function called getMAE()
+```{r}
+getMAE <- function(response, prediction, ...) {
+  
+  if (length(response) != length(prediction)) {
+    stop("Length of response and prediction vectors must be the same.")
+  }
+  
+  # Calculate the absolute error values
+  abs_err <- abs(response - prediction)
+  
+  # Calculate the mean absolute error
+  mean_abs_err <- mean(abs_err, ...)
+  
+  return(mean_abs_err)
+}
+```
+
+#### 4. Test the MAE function
+```{r}
+# Run the following code to create some response values and predictions
+set.seed(10)
+n <- 100
+x <- runif(n)
+resp <- 3 + 10*x + rnorm(n)
+pred <- predict(lm(resp ~ x), data.frame(x))
+```
+
+```{r}
+# Test the MAE function (without missing values)
+mae_val <- getMAE(resp, pred)
+mae_val
+```
+
+```{r}
+# Repeat after replacing two of the response values with missing values (NA_real_)
+with_na <- resp
+with_na[sample(1:n, 2)] <- NA_real_
+
+# MAE WITH specifying how to deal with missing values
+established_mae <- getMAE(with_na, pred, na.rm = FALSE)
+established_mae
+
+# MAE WITHOUT specifying how to deal with missing values
+default_mae <- getMAE(with_na, pred)
+default_mae
+```
+
+#### 5. Create a wrapper function
+
+```{r}
+# Check if a vector is numeric and atomic
+is_numeric_atomic <- function(x) {
+  is.vector(x) && is.atomic(x) && is.numeric(x)
+}
+```
+
+```{r}
+wrapper_RMSE_MAE <- function(response, prediction, metrics = c("RMSE", "MAE")) {
+  
+  # Check if values are numeric and atomic vectors
+  if (!is_numeric_atomic(response) || !is_numeric_atomic(prediction)) {
+    stop("Length of response and prediction vectors must be the same.")
+  }
+  
+  results <- list()
+  if ("RMSE" %in% metrics) {
+    results$RMSE <- getRMSE(response, prediction)
+  }
+  if ("MAE" %in% metrics) {
+    results$MAE <- getMAE(response, prediction)
+  }
+  
+  return(results)
+}
+```
+
+#### 6. Test the wrapper function
+```{r}
+# Run the following code to create some response values and predictions
+set.seed(10)
+n <- 100
+x <- runif(n)
+resp <- 3 + 10*x + rnorm(n)
+pred <- predict(lm(resp ~ x), data.frame(x))
+```
+
+```{r}
+# Call the wrapper function and ask for each metric individually (WITHOUT missing values)
+rmse_test <- wrapper_RMSE_MAE(resp, pred, metrics = "RMSE")
+rmse_test
+
+mae_test <- wrapper_RMSE_MAE(resp, pred, metrics = "MAE")
+mae_test
+```
+
+```{r}
+# Call the wrapper function and ask for both metrics (WITHOUT missing values)
+both_test <- wrapper_RMSE_MAE(resp, pred)
+both_test
+```
+
+```{r}
+# Call the wrapper function and ask for each metric individually (WITH missing values)
+rmse_test2 <- wrapper_RMSE_MAE(with_na, pred, metrics = "RMSE")
+rmse_test2
+
+mae_test2 <- wrapper_RMSE_MAE(with_na, pred, metrics = "MAE")
+mae_test2
+```
+
+```{r}
+# Call the wrapper function and ask for both metrics (WITH missing values)
+both_test2 <- wrapper_RMSE_MAE(with_na, pred)
+both_test2
+```
+
+```{r}
+# Call the wrapper function with incorrect data
+incorrect_data <- data.frame(response = resp, prediction = pred)
+incorrect_test <- wrapper_RMSE_MAE(incorrect_data$response, incorrect_data$prediction)
+incorrect_test
+```
+
+## Task 3: Querying an API and a Tidy-Style Function
+
+#### 1. Return information about a topic that you are interested in
+```{r}
+# Establish URL and topic of interest
+url <- "https://newsapi.org/v2/everything"
+query <- "sports"
+params <- list(q = query, apiKey = api_key)
+
+# GET request
+response <- GET(url, query = params)
+
+# Check for a successful request
+if (http_error(response)) {
+  stop("HTTP error ", status_code(response))
+} else {
+  
+  # Parse JSON
+  content <- fromJSON(rawToChar(response$content))
+  
+  # Establish list of articles
+  articles <- content$articles
+}
+```
+
+#### 2. Find your way to the data frame with the actual article information
+```{r}
+# Establish URL and topic of interest
+url <- "https://newsapi.org/v2/everything"
+query <- "sports"
+params <- list(q = query, apiKey = api_key)
+
+# GET request
+response <- GET(url, query = params)
+
+# Check for a successful request
+if (http_error(response)) {
+  stop("HTTP error ", status_code(response))
+} else {
+  
+  # Parse JSON
+  content <- fromJSON(rawToChar(response$content))
+  
+  # Establish list of articles
+  articles <- content$articles
+  
+  # Create a data frame with the list of articles
+  article_df <- bind_rows(lapply(articles, as.data.frame))
+  
+  # Ensure the first column is a list column
+  article_df <- tibble::as_tibble(article_df)
+  
+  # Print the first 5 rows of the data frame
+  head(article_df)
+}
+```
+
+#### 3. Write a function that allows the user to easily query the API
+```{r}
+api_query <- function(query, from_date) {
+  
+  # Establish URL, topic of interest, and source
+  url <- "https://newsapi.org/v2/everything"
+  source("api_key.R", local = TRUE)
+  params <- list(q = query, from = from_date, apiKey = api_key)
+  
+  # GET request
+  response <- GET(url, query = params)
+  
+  # Check for a successful request
+  if (http_error(response)) {
+  stop("HTTP error ", status_code(response))
+} else {
+  
+  # Parse JSON
+  content <- fromJSON(rawToChar(response$content))
+  
+  # Establish list of articles
+  articles <- content$articles
+  
+  # Create a data frame with the list of articles
+  article_df <- bind_rows(lapply(articles, as.data.frame))
+  
+  # Ensure the first column is a list column
+  article_df <- tibble::as_tibble(article_df)
+  
+  # Return the data frame
+  return(article_df)
+  }
+}
+```
+
+**Use this function twice**
+```{r}
+# First Test
+query1 <- api_query(query = "sports", from_date = "2024-06-22")
+query1
+
+# Second Test
+query2 <- api_query(query = "entertainment", from_date = "2024-06-14")
+query2
+```
